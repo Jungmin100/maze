@@ -5,11 +5,12 @@ from PIL import Image, ImageDraw
 # 설정
 # =========================
 IMAGE_PATH = "maze.png"
-STEP = 4                 # 이동 속도 (픽셀)
-PLAYER_RADIUS = 2        # 🔴 빨간 점 크기 (아주 작게)
+STEP = 4
+PLAYER_RADIUS = 2  # 🔴 매우 작은 빨간 점
 
 st.set_page_config(page_title="미로 게임", layout="centered")
-st.title("🌀 미로 탈출 게임")
+st.title("🌀 미로 탈출 게임 (키보드 조작)")
+st.caption("W/A/S/D 키로 이동하세요")
 
 # =========================
 # 이미지 로드
@@ -23,7 +24,7 @@ pixels = maze_img.load()
 # =========================
 if "x" not in st.session_state:
     st.session_state.x = width // 2
-    st.session_state.y = 8   # 맨 위
+    st.session_state.y = 8
 
 # =========================
 # 이동 가능 판정
@@ -32,7 +33,7 @@ def can_move(x, y):
     if x < 0 or y < 0 or x >= width or y >= height:
         return False
     r, g, b = pixels[int(x), int(y)]
-    return r > 200 and g > 200 and b > 200  # 흰색만 이동 가능
+    return r > 200 and g > 200 and b > 200
 
 # =========================
 # 이동 처리
@@ -43,6 +44,31 @@ def move(dx, dy):
     if can_move(nx, ny):
         st.session_state.x = nx
         st.session_state.y = ny
+
+# =========================
+# 키보드 입력 처리
+# =========================
+key = st.text_input(
+    "",
+    key="key_input",
+    label_visibility="collapsed",
+    placeholder="여기를 클릭하고 W/A/S/D 키 입력",
+)
+
+if key:
+    last = key[-1].lower()
+
+    if last == "w":
+        move(0, -STEP)
+    elif last == "s":
+        move(0, STEP)
+    elif last == "a":
+        move(-STEP, 0)
+    elif last == "d":
+        move(STEP, 0)
+
+    # 입력 초기화 (연속 입력 가능하게)
+    st.session_state.key_input = ""
 
 # =========================
 # 플레이어 표시
@@ -60,23 +86,6 @@ draw.ellipse(
 )
 
 st.image(display_img, use_container_width=True)
-
-# =========================
-# 이동 버튼 UI
-# =========================
-c1, c2, c3 = st.columns(3)
-
-with c2:
-    st.button("↑", on_click=move, args=(0, -STEP))
-
-with c1:
-    st.button("←", on_click=move, args=(-STEP, 0))
-
-with c3:
-    st.button("→", on_click=move, args=(STEP, 0))
-
-with c2:
-    st.button("↓", on_click=move, args=(0, STEP))
 
 # =========================
 # 리셋
