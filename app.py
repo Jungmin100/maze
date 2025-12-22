@@ -1,15 +1,15 @@
 import streamlit as st
-from PIL import Image
-from streamlit_drawable_canvas import st_canvas
+from PIL import Image, ImageDraw
+import json
 
 # =========================
-# 기본 설정
+# 설정
 # =========================
 IMAGE_PATH = "maze.png"
-PLAYER_RADIUS = 4   # 🔴 공 크기 줄임
+PLAYER_RADIUS = 4
 
 st.set_page_config(page_title="미로 게임", layout="centered")
-st.title("🌀 미로 탈출 게임 (드래그 방식)")
+st.title("🌀 미로 탈출 게임 (마우스 드래그)")
 
 # =========================
 # 이미지 로드
@@ -19,11 +19,11 @@ width, height = maze_img.size
 pixels = maze_img.load()
 
 # =========================
-# 세션 상태 (맨 위 시작)
+# 시작 위치 (맨 위)
 # =========================
 if "x" not in st.session_state:
     st.session_state.x = width // 2
-    st.session_state.y = 10   # ⬆️ 맨 위에서 시작
+    st.session_state.y = 8
 
 # =========================
 # 이동 가능 판정
@@ -32,54 +32,48 @@ def can_move(x, y):
     if x < 0 or y < 0 or x >= width or y >= height:
         return False
     r, g, b = pixels[int(x), int(y)]
-    return r > 200 and g > 200 and b > 200  # 흰색만 허용
+    return r > 200 and g > 200 and b > 200
 
 # =========================
-# Canvas (마우스 드래그)
+# 마우스 위치 받기 (JS)
 # =========================
-canvas = st_canvas(
-    fill_color="rgba(255, 0, 0, 0.0)",
-    stroke_width=1,
-    stroke_color="red",
-    background_image=maze_img,
-    update_streamlit=True,
-    height=height,
-    width=width,
-    drawing_mode="point",
-    key="canvas",
+mouse = st.components.v1.html(
+    f"""
+    <script>
+    const sendPos = (e) => {{
+        const rect = e.target.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        window.parent.postMessage({{x, y}}, "*");
+    }};
+    </script>
+    <div style="width:{width}px;height:{height}px"
+         onmousemove="sendPos(event)">
+    </div>
+    """,
+    height=0,
 )
-
-# =========================
-# 드래그 위치 처리
-# =========================
-if canvas.json_data and "objects" in canvas.json_data:
-    if len(canvas.json_data["objects"]) > 0:
-        obj = canvas.json_data["objects"][-1]
-        new_x = obj["left"]
-        new_y = obj["top"]
-
-        if can_move(new_x, new_y):
-            st.session_state.x = new_x
-            st.session_state.y = new_y
 
 # =========================
 # 플레이어 표시
 # =========================
-overlay = maze_img.copy()
-overlay_pixels = overlay.load()
+img = maze_img.copy()
+draw = ImageDraw.Draw(img)
+draw.ellipse(
+    (
+        st.session_state.x - PLAYER_RADIUS,
+        st.session_state.y - PLAYER_RADIUS,
+        st.session_state.x + PLAYER_RADIUS,
+        st.session_state.y + PLAYER_RADIUS,
+    ),
+    fill="red",
+)
 
-for dx in range(-PLAYER_RADIUS, PLAYER_RADIUS + 1):
-    for dy in range(-PLAYER_RADIUS, PLAYER_RADIUS + 1):
-        px = int(st.session_state.x + dx)
-        py = int(st.session_state.y + dy)
-        if 0 <= px < width and 0 <= py < height:
-            overlay_pixels[px, py] = (255, 0, 0)
-
-st.image(overlay, use_container_width=True)
+st.image(img, use_container_width=True)
 
 # =========================
 # 리셋
 # =========================
-if st.button("처음부터 다시"):
+if st.button("처음부터"):
     st.session_state.x = width // 2
-    st.session_state.y = 10
+    st.session_state.y = 8
