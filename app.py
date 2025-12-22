@@ -6,11 +6,11 @@ from PIL import Image, ImageDraw
 # =========================
 IMAGE_PATH = "maze.png"
 STEP = 4
-PLAYER_RADIUS = 2  # 🔴 매우 작은 빨간 점
+PLAYER_RADIUS = 2
 
 st.set_page_config(page_title="미로 게임", layout="centered")
 st.title("🌀 미로 탈출 게임 (키보드 조작)")
-st.caption("W/A/S/D 키로 이동하세요")
+st.caption("W / A / S / D 키로 이동하세요")
 
 # =========================
 # 이미지 로드
@@ -46,17 +46,15 @@ def move(dx, dy):
         st.session_state.y = ny
 
 # =========================
-# 키보드 입력 처리
+# 키보드 입력 (핵심 수정)
 # =========================
-key = st.text_input(
-    "",
+key_input = st.text_input(
+    "키 입력 (클릭 후 W/A/S/D)",
     key="key_input",
-    label_visibility="collapsed",
-    placeholder="여기를 클릭하고 W/A/S/D 키 입력",
 )
 
-if key:
-    last = key[-1].lower()
+if key_input:
+    last = key_input[-1].lower()
 
     if last == "w":
         move(0, -STEP)
@@ -66,9 +64,6 @@ if key:
         move(-STEP, 0)
     elif last == "d":
         move(STEP, 0)
-
-    # 입력 초기화 (연속 입력 가능하게)
-    st.session_state.key_input = ""
 
 # =========================
 # 플레이어 표시
